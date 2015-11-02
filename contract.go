@@ -10,7 +10,7 @@ type FireCalculater interface {
 }
 
 type NetCreater interface {
-	Create(n int, f float64) Net
+	Create(n int, f float64) (net Net)
 }
 
 type NetPrinter interface {

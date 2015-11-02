@@ -12,15 +12,6 @@ type Node struct {
 	Outs []Node
 }
 
-type Grid struct {
-	Neurons [][]Neuron
-}
-
-type Graph struct {
-	Nodes []Node
-}
-
 type Net struct {
-	Graph
-	Grid
+	Nodes []Node
 }
