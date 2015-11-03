@@ -3,36 +3,47 @@ package main
 import (
 	"os"
 	"os/exec"
+	"sync"
 	"time"
 )
 
-var size int = 20
-var factor float64 = 0.25
+var size int = 30
+var factor float64 = 0.1
 var steps int = 10000
-var delay = 40 * time.Millisecond
+var delay = 200 * time.Millisecond
 
 func main() {
 	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 	simulate(
-		CartMaker{},
+		NewCartMaker(factor),
 		CartCloner{},
-		GolNeuronCalculater{},
-		SimpleNeuronFirer{},
-		FullCartPrinter{})
+		NewCalculater(factor),
+		NewFirer(factor),
+		NewPrinter())
+}
+
+func calc(in Neuron, out *Neuron, nc NeuronCalculater, nf NeuronFirer, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if nc.Calculate(in) {
+		nf.Fire(out)
+	} else {
+		nf.UnFire(out)
+	}
 }
 
 func step(in Net, out Net, nc NeuronCalculater, nf NeuronFirer) {
+	var wg sync.WaitGroup
+	for i := range in.neurons {
+		wg.Add(len(in.neurons[i]))
+	}
 	for i := range in.neurons {
 		for j, neuron := range in.neurons[i] {
-			if nc.Calculate(neuron) {
-				nf.Fire(&out.neurons[i][j])
-			} else {
-				nf.UnFire(&out.neurons[i][j])
-			}
+			go calc(neuron, &(out.neurons[i][j]), nc, nf, &wg)
 		}
 	}
+	wg.Wait()
 	return
 }
 
@@ -46,7 +57,7 @@ func simulate(nm NetMaker, ncl NetCloner, nca NeuronCalculater, nf NeuronFirer, 
 	for i := 1; i < steps; i += 1 {
 		step(nets[curr], nets[next], nca, nf)
 		next, curr = curr, next
-		np.Print(nets[curr])
 		time.Sleep(delay)
+		np.Print(nets[curr])
 	}
 }
